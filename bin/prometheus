@@ -1,0 +1,85 @@
+#!/usr/bin/env node
+/**
+ * Command line interface for Project PROMETHEUS.
+ */
+
+import { listBenchmarks } from "../lib/benchmarks.js";
+import { ResearchEngine } from "../lib/engine.js";
+
+function cmdList() {
+  for (const name of listBenchmarks()) console.log(name);
+  return 0;
+}
+
+function cmdRun(args) {
+  const engine = new ResearchEngine({ seed: args.seed, archivePath: args.archive });
+  const stats = engine.run(args.benchmark, {
+    generations: args.generations,
+    population: args.population,
+    nCases: args.cases,
+  });
+  for (const s of stats) {
+    console.log(
+      `gen=${s.generation} bench=${s.benchmark} tested=${s.candidatesTested} discoveries=${s.discoveries} best_ops=${s.bestOps}`,
+    );
+  }
+  const best = engine.bestFor(args.benchmark);
+  if (best) {
+    console.log(`BEST: ${best.code}  ops=${best.opCount} gen=${best.generation}`);
+  }
+  return 0;
+}
+
+function cmdDiscoveries(args) {
+  const engine = new ResearchEngine({ seed: args.seed, archivePath: args.archive });
+  for (const d of engine.discoveriesFor(args.benchmark)) {
+    console.log(
+      `gen=${d.generation} correctness=${d.correctness.toFixed(3)} ops=${d.ops.toFixed(2)}  ${d.code}`,
+    );
+  }
+  return 0;
+}
+
+function parseArgs(argv) {
+  const args = { _: [] };
+  for (let i = 0; i < argv.length; i++) {
+    const a = argv[i];
+    if (a.startsWith("--")) {
+      const eq = a.indexOf("=");
+      const key = eq === -1 ? a.slice(2) : a.slice(2, eq);
+      const val = eq === -1 ? argv[++i] : a.slice(eq + 1);
+      args[key] = val;
+    } else {
+      args._.push(a);
+    }
+  }
+  return args;
+}
+
+function main(argv) {
+  const args = parseArgs(argv);
+  const cmd = args._[0];
+  if (cmd === "list-benchmarks") return cmdList();
+  if (cmd === "run") {
+    return cmdRun({
+      benchmark: args._[1],
+      generations: parseInt(args.generations || "10", 10),
+      population: parseInt(args.population || "60", 10),
+      cases: parseInt(args.cases || "200", 10),
+      seed: parseInt(args.seed || "0", 10),
+      archive: args.archive,
+    });
+  }
+  if (cmd === "discoveries") {
+    return cmdDiscoveries({
+      benchmark: args._[1],
+      seed: parseInt(args.seed || "0", 10),
+      archive: args.archive,
+    });
+  }
+  console.error("Usage: prometheus <list-benchmarks|run|discoveries> [options]");
+  return 1;
+}
+
+const code = main(process.argv.slice(2)) || 0;
+process.exit(code);
