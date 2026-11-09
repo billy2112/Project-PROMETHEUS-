@@ -1,0 +1,13 @@
+{
+  "name": "prometheus",
+  "version": "0.1.0",
+  "description": "Project PROMETHEUS — an AI research engine that discovers its own algorithms",
+  "main": "lib/engine.js",
+  "bin": {
+    "prometheus": "bin/prometheus"
+  },
+  "type": "module",
+  "scripts": {
+    "start": "node bin/prometheus"
+  }
+}
